@@ -9,6 +9,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: var(--font-family);
   background-color: #f0f2f5; /* Backdrop gray for testing, app frame sits in center */
@@ -40,6 +46,11 @@ body {
 
 /* For mobile devices, take full screen */
 @media (max-width: 480px) {
+  html, body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
   #app-container {
     max-width: 100%;
     height: 100vh;
@@ -54,8 +65,6 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     display: block; /* Disable flex centering on mobile to prevent top gap */
-    min-height: 100dvh;
-    height: 100dvh;
   }
 }
 
