@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Wound Analyzer AI</title>
+  
+  <!-- SEO & PWA Meta Tags -->
+  <meta name="description" content="Aplikasi pemantauan berkala perkembangan penyembuhan luka menggunakan teknologi kamera HP dan analisis visual.">
+  <meta name="theme-color" content="#131b2e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <!-- Google Fonts Preconnect for faster loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Core Styles -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/screens.css">
+
+  <!-- Chart.js CDN for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF CDN for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Mobile Frame Wrapper Container -->
+  <div id="app-container">
+
+    <!-- ==================== SCREEN 1: SPLASH SCREEN ==================== -->
+    <div id="screen-splash" class="screen-container">
+      <div class="splash-logo-container splash-logo-anim">
+        <span class="icon">healing</span>
+      </div>
+      <h1 class="splash-title">Wound Analyzer AI</h1>
+      <p class="splash-tagline">Pantau Kesembuhan Luka Anda</p>
+    </div>
+
+    <!-- ==================== SCREEN 2: ONBOARDING SCREEN ==================== -->
+    <div id="screen-onboarding" class="screen-container hidden">
+      <a id="btn-onboarding-skip" class="onboarding-skip">Lewati</a>
+      
+      <div class="onboarding-slider">
+        <!-- Slide 1 -->
+        <div class="onboarding-slide active">
+          <div class="onboarding-illustration pulse-glow">
+            <span class="icon">photo_camera</span>
+          </div>
+          <h2 class="onboarding-slide-title">Pantau Luka Anda dengan Mudah</h2>
+          <p class="onboarding-slide-desc">Foto luka secara rutin langsung dari kamera HP atau upload dari galeri. AI membantu mendokumentasikan perkembangannya.</p>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="onboarding-slide">
+          <h2 class="onboarding-slide-title">Tiga Langkah Sederhana</h2>
+          <div class="onboarding-steps">
+            <div class="onboarding-step-item">
+              <div class="onboarding-step-icon"><span class="icon">photo_camera</span></div>
+              <div class="onboarding-step-text">
+                <h4>1. Ambil Foto Luka</h4>
+                <p>Gunakan kamera HP atau ambil dari galeri Anda.</p>
+              </div>
+            </div>
+            <div class="onboarding-step-item">
+              <div class="onboarding-step-icon"><span class="icon">neurology</span></div>
+              <div class="onboarding-step-text">
+                <h4>2. Analisis Otomatis</h4>
+                <p>Sistem akan mengukur ukuran area luka.</p>
+              </div>
+            </div>
+            <div class="onboarding-step-item">
+              <div class="onboarding-step-icon"><span class="icon">trending_down</span></div>
+              <div class="onboarding-step-text">
+                <h4>3. Lihat Perkembangan</h4>
+                <p>Pantau perkembangan luka lewat grafik tren.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="onboarding-slide">
+          <div class="onboarding-illustration" style="background-color:rgba(19, 27, 46, 0.1); color:var(--primary)">
+            <span class="icon">lock</span>
+          </div>
+          <h2 class="onboarding-slide-title">Data Tersimpan Aman</h2>
+          <p class="onboarding-slide-desc">Privasi Anda prioritas kami. Semua foto dan laporan hanya disimpan di perangkat HP Anda, tidak dikirim ke server mana pun.</p>
+        </div>
+      </div>
+
+      <div class="onboarding-footer">
+        <div class="onboarding-dots">
+          <span class="onboarding-dot dot-active"></span>
+          <span class="onboarding-dot dot-inactive"></span>
+          <span class="onboarding-dot dot-inactive"></span>
+        </div>
+        <button id="btn-onboarding-next" class="onboarding-next-btn">
+          <span class="icon">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 3: HOME DASHBOARD (TABBED CONTAINER) ==================== -->
+    <div id="screen-home" class="screen-container hidden">
+      
+      <!-- SUBVIEW A: HOME DASHBOARD VIEW -->
+      <div id="view-home" class="tab-subview scrollable">
+        <div class="home-welcome-section">
+          <p id="home-greeting" class="home-greetings">Selamat Pagi</p>
+          <h2 id="home-date" class="home-date">Selasa, 3 Juni 2026</h2>
+        </div>
+
+        <!-- Hero Info Card — always visible -->
+        <div class="hero-card">
+          <div class="hero-card-icon">
+            <span class="icon" style="font-size:32px">healing</span>
+          </div>
+          <div class="hero-card-content">
+            <h3 class="hero-card-title">Wound Analyzer AI</h3>
+            <p class="hero-card-desc">Pantau perkembangan penyembuhan luka secara visual dengan teknologi analisis citra cerdas — langsung dari HP Anda.</p>
+          </div>
+        </div>
+
+        <!-- Quick Feature Pills -->
+        <div class="feature-pills">
+          <div class="feature-pill">
+            <span class="icon" style="font-size:18px; color:var(--secondary)">photo_camera</span>
+            <span>Foto Luka</span>
+          </div>
+          <div class="feature-pill">
+            <span class="icon" style="font-size:18px; color:var(--secondary)">neurology</span>
+            <span>Analisis AI</span>
+          </div>
+          <div class="feature-pill">
+            <span class="icon" style="font-size:18px; color:var(--secondary)">trending_down</span>
+            <span>Tren Grafik</span>
+          </div>
+          <div class="feature-pill">
+            <span class="icon" style="font-size:18px; color:var(--secondary)">picture_as_pdf</span>
+            <span>Ekspor PDF</span>
+          </div>
+        </div>
+
+        <!-- Empty State Dashboard -->
+        <div id="home-empty-state" class="empty-state hidden">
+          <div class="empty-state-icon">
+            <span class="icon">add_a_photo</span>
+          </div>
+          <h4 class="empty-state-title">Belum Ada Sesi Pemantauan</h4>
+          <p class="empty-state-desc">Buat sesi luka baru untuk mulai mendokumentasikan dan memantau perkembangan penyembuhan.</p>
+          <button id="btn-empty-create-session" class="btn btn-primary btn-full btn-lg"><span class="icon">add</span> Buat Sesi Pertama</button>
+        </div>
+
+        <!-- Dashboard Content Container (Shown when sessions exist) -->
+        <div id="home-dashboard-content" class="hidden">
+          <!-- Summary Statistics Card -->
+          <div class="summary-card">
+            <p class="summary-label">Ringkasan Pemantauan</p>
+            <div id="home-active-sessions-count" class="summary-main-count">0 Sesi</div>
+            <div class="summary-badges-container">
+              <span id="count-badge-improving" class="badge badge-success">0 Membaik</span>
+              <span id="count-badge-stable" class="badge badge-warning">0 Stabil</span>
+              <span id="count-badge-worsening" class="badge badge-danger">0 Memburuk</span>
+            </div>
+          </div>
+
+          <!-- Active Sesi Section -->
+          <div class="section-header">
+            <h3 class="section-title">Sesi Luka Aktif</h3>
+          </div>
+
+          <!-- Session List Container -->
+          <div id="session-list-container" class="session-list">
+            <!-- Session item cards loaded via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Floating Add Button (FAB) -->
+        <button id="fab-add-session" class="btn-fab fab-bounce-enter">
+          <span class="icon" style="font-size:28px">add</span>
+        </button>
+      </div>
+
+      <!-- SUBVIEW B: REPORTS EXPORT VIEW -->
+      <div id="view-reports" class="tab-subview scrollable hidden">
+        <div class="home-welcome-section">
+          <p class="home-greetings">Laporan & Ekspor</p>
+          <h2 class="home-date">Unduh Laporan PDF</h2>
+        </div>
+
+        <!-- Report info banner -->
+        <div class="report-info-banner">
+          <span class="icon" style="font-size:20px; color:var(--secondary)">info</span>
+          <p>Pilih sesi luka di bawah untuk melihat preview dan mengekspor laporan medis dalam format PDF.</p>
+        </div>
+
+        <div class="reports-form">
+          <div class="form-group">
+            <label class="form-label" for="select-report-session">
+              <span class="icon" style="font-size:18px; vertical-align:middle; margin-right:4px">folder_open</span>
+              Pilih Sesi Luka
+            </label>
+            <div class="custom-select-wrapper" id="reports-custom-select">
+              <div class="custom-select-trigger" tabindex="0">
+                <span class="custom-select-value">Memuat sesi...</span>
+                <span class="icon custom-select-arrow">expand_more</span>
+              </div>
+              <div class="custom-select-options" id="reports-custom-options">
+                <!-- Custom options generated by JS -->
+              </div>
+            </div>
+            <!-- Hidden original select to maintain existing logic -->
+            <select id="select-report-session" style="display:none;"></select>
+          </div>
+        </div>
+
+        <!-- Report Preview Section -->
+        <div id="report-preview-container" class="reports-preview-card hidden">
+          <p class="summary-label">PREVIEW LAPORAN</p>
+          <h3 id="preview-session-name" class="headline-md" style="margin-bottom:4px">Luka Kaki Kiri</h3>
+          <p class="body-sm" style="margin-bottom:16px">Lokasi: <span id="preview-session-location" style="font-weight:600">Kaki Kiri</span> · Mulai: <span id="preview-session-start">1 Juni 2026</span></p>
+          
+          <div class="preview-item" style="margin-bottom:12px">
+            <span class="preview-label">Total Dokumentasi</span>
+            <span id="preview-total-entries" class="preview-value">0 Foto</span>
+          </div>
+
+          <!-- Metadata Grid values loaded via JS -->
+          <div id="preview-status-box" style="margin-bottom:16px"></div>
+        </div>
+
+        <!-- Export Button with spacer -->
+        <div style="padding: 0 0 24px 0;">
+          <button id="btn-export-pdf" class="btn btn-export-premium btn-full btn-lg">
+            <span class="icon">picture_as_pdf</span> Ekspor Laporan PDF
+          </button>
+          <p class="body-sm" style="text-align:center; margin-top:8px; color:var(--on-surface-variant); font-size:11px">
+            <span class="icon" style="font-size:14px; vertical-align:middle">lock</span>
+            Laporan diproses sepenuhnya di perangkat Anda
+          </p>
+        </div>
+      </div>
+
+      <!-- SUBVIEW C: SETTINGS VIEW -->
+      <div id="view-settings" class="tab-subview scrollable hidden">
+        <div class="home-welcome-section">
+          <p class="home-greetings">Pengaturan</p>
+          <h2 class="home-date">Konfigurasi & Informasi</h2>
+        </div>
+
+        <div class="settings-list">
+          <!-- Section 1: Storage -->
+          <div class="settings-section">
+            <p class="settings-section-title">Penyimpanan</p>
+            <div class="settings-card">
+              <div class="settings-item" style="flex-direction:column; align-items:flex-start; cursor:default">
+                <span class="settings-item-title">Pemakaian Penyimpanan Lokal</span>
+                <span id="settings-storage-text" class="settings-item-value">0 MB digunakan</span>
+                <div class="storage-bar-wrapper">
+                  <div id="settings-storage-bar" class="storage-bar-fill"></div>
+                </div>
+              </div>
+              <div id="btn-settings-nuke" class="settings-item">
+                <span class="settings-item-title">Hapus Semua Data</span>
+                <span class="settings-item-value-danger">Hapus</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Info -->
+          <div class="settings-section">
+            <p class="settings-section-title">Tentang Aplikasi</p>
+            <div class="settings-card">
+              <div class="settings-item" style="cursor:default">
+                <span class="settings-item-title">Versi Aplikasi</span>
+                <span class="settings-item-value">1.0.0</span>
+              </div>
+              <div class="settings-item" style="cursor:default">
+                <span class="settings-item-title">Mata Kuliah</span>
+                <span class="settings-item-value">Tugas Akhir Sistem Multimedia (UNNES)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Medical Disclaimer Card -->
+          <div class="settings-disclaimer-card">
+            <p class="settings-disclaimer-title"><span class="icon" style="color:var(--error)">warning</span> Peringatan Medis</p>
+            <p class="warning-text">Aplikasi ini dirancang sebagai alat bantu dokumentasi visual perkembangan luka secara berkala. Hasil analisis yang diberikan adalah simulasi berbasis kecerdasan buatan untuk keperluan demo tugas kuliah, bukan diagnosis medis formal. Selalu konsultasikan kondisi kesehatan Anda ke dokter atau tenaga kesehatan profesional.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky Bottom Navigation Bar -->
+      <div class="bottom-nav">
+        <a class="nav-tab active" data-tab="tab-home">
+          <span class="icon">home</span>
+          <span class="label">Beranda</span>
+        </a>
+        <a class="nav-tab" data-tab="tab-reports">
+          <span class="icon">bar_chart</span>
+          <span class="label">Laporan</span>
+        </a>
+        <a class="nav-tab" data-tab="tab-settings">
+          <span class="icon">settings</span>
+          <span class="label">Pengaturan</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 4: BUAT SESI BARU ==================== -->
+    <div id="screen-create-session" class="screen-container hidden">
+      <div class="app-header">
+        <button class="btn-icon back-btn-trigger" data-dest="screen-home"><span class="icon">arrow_back</span></button>
+        <h2 class="app-header-title">Buat Sesi Baru</h2>
+        <div class="right-action"></div>
+      </div>
+
+      <div class="scrollable">
+        <form id="form-new-session" autocomplete="off">
+          <div class="form-group">
+            <label class="form-label" for="input-session-name">
+              <span class="icon" style="font-size:18px; vertical-align:middle; margin-right:4px">edit_document</span>
+              Nama Sesi Luka
+            </label>
+            <input type="text" id="input-session-name" class="input-field" placeholder="Contoh: Luka Kaki Kiri" maxlength="50" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="icon" style="font-size:18px; vertical-align:middle; margin-right:4px">accessibility_new</span>
+              Lokasi Tubuh
+            </label>
+            <div id="body-location-chips" class="chip-group">
+              <span class="chip" data-val="Kepala">Kepala</span>
+              <span class="chip" data-val="Leher">Leher</span>
+              <span class="chip" data-val="Dada">Dada</span>
+              <span class="chip" data-val="Perut">Perut</span>
+              <span class="chip" data-val="Punggung">Punggung</span>
+              <span class="chip" data-val="Lengan Kanan">Lengan Kanan</span>
+              <span class="chip" data-val="Lengan Kiri">Lengan Kiri</span>
+              <span class="chip" data-val="Kaki Kanan">Kaki Kanan</span>
+              <span class="chip" data-val="Kaki Kiri">Kaki Kiri</span>
+              <span class="chip" data-val="Lainnya">Lainnya</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="textarea-session-notes">
+              <span class="icon" style="font-size:18px; vertical-align:middle; margin-right:4px">notes</span>
+              Catatan Tambahan (Opsional)
+            </label>
+            <textarea id="textarea-session-notes" class="textarea-field" placeholder="Misal: Luka bekas jahitan operasi..." rows="3"></textarea>
+          </div>
+
+          <button type="submit" id="btn-submit-session" class="btn btn-primary btn-full btn-lg" style="margin-top:var(--space-md)" disabled>
+            Buat Sesi
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 5: CAMERA SCREEN ==================== -->
+    <div id="screen-camera" class="screen-container hidden">
+      <!-- Top floating overlay header -->
+      <div class="camera-header">
+        <span id="btn-camera-close" class="icon camera-back-btn btn-icon">close</span>
+        <span id="camera-session-title" class="camera-session-chip">Luka Kaki Kiri</span>
+        <span id="btn-camera-flash" class="icon camera-flash-btn btn-icon">flash_off</span>
+      </div>
+
+      <!-- Realtime Viewfinder viewport -->
+      <div class="camera-viewport-container">
+        <video id="camera-video" autoplay playsinline muted></video>
+        
+        <!-- White visual flash feedback -->
+        <div id="camera-flash-overlay" class="camera-flash-overlay"></div>
+
+        <!-- Guide framing overlay layer -->
+        <div class="camera-overlay">
+          <div class="camera-tips-top">Posisikan luka di dalam kotak dan jaga fokus</div>
+          <div class="camera-guide-box">
+            <div class="camera-grid">
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+              <div class="camera-grid-cell"></div>
+            </div>
+          </div>
+          <p class="camera-guide-text">Arahkan kamera tegak lurus dengan area luka</p>
+        </div>
+      </div>
+
+      <!-- Controls triggers bottom panel -->
+      <div class="camera-controls">
+        <button id="btn-camera-gallery" class="camera-action-btn">
+          <span class="icon">photo_library</span>
+          <span>Galeri</span>
+        </button>
+        
+        <button id="btn-camera-capture" class="camera-capture-trigger"></button>
+        
+        <div style="width:50px"></div> <!-- Spacer alignment -->
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 6: LOADING ANALISIS AI ==================== -->
+    <div id="screen-loading-analysis" class="screen-container hidden">
+      <div id="loading-image-bg" class="loading-blur-bg"></div>
+      
+      <div class="loading-container">
+        <div class="loading-spinner-wrapper">
+          <div id="loading-pulse-ring" class="loading-pulse-ring"></div>
+          <span class="icon spinner-anim" style="font-size: 40px; color: var(--secondary)">neurology</span>
+        </div>
+        
+        <h3 class="loading-text-headline">Menganalisis Luka...</h3>
+        <p id="loading-text-sub" class="loading-text-sub">Mendeteksi area luka...</p>
+      </div>
+      
+      <!-- Visual Laser Scanner overlay bar -->
+      <div class="scan-line"></div>
+    </div>
+
+    <!-- ==================== SCREEN 7: HASIL ANALISIS ==================== -->
+    <div id="screen-analysis-result" class="screen-container hidden">
+      
+      <!-- Top Image View Panel -->
+      <div class="result-image-container">
+        <img id="result-preview-photo" class="result-photo" src="" alt="Captured analysis">
+        
+        <!-- SVG overlay for segments mask -->
+        <svg id="result-mask-svg" class="result-svg-overlay">
+          <!-- Filled path loaded in AI mock -->
+          <path d="" fill="#006b5f" fill-opacity="0.4" stroke="#006b5f" stroke-width="3" />
+        </svg>
+
+        <span class="result-image-badge"><span class="icon" style="font-size:16px">verified</span> ANALISIS SELESAI</span>
+        
+        <div id="result-toggle-overlay" class="result-toggle-overlay active">
+          <span>Overlay Masker</span>
+          <div class="result-toggle-switch"></div>
+        </div>
+      </div>
+
+      <!-- Scrollable metrics and findings -->
+      <div class="result-content-container scrollable">
+        <div class="result-report-card">
+          <div class="result-headline-row">
+            <h3 class="result-title">Hasil Deteksi</h3>
+            <p class="result-subtitle">Dihasilkan otomatis oleh modul AI</p>
+          </div>
+
+          <!-- Interactive AI Controls -->
+          <div class="ai-controls-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-sm)">
+              <span style="font-size:var(--fs-label-md); font-weight:600; color:var(--secondary)">Sensitivitas Deteksi</span>
+              <span id="ai-sensitivity-val" style="font-size:var(--fs-label-sm); font-weight:700">1.25x</span>
+            </div>
+            <input type="range" id="input-ai-sensitivity" min="1.0" max="1.6" step="0.05" value="1.25" class="slider-field">
+            <p class="metric-desc" style="margin-top:var(--space-xs)">Geser untuk menyesuaikan presisi deteksi jika area luka belum tertangkap sempurna.</p>
+          </div>
+
+          <!-- Cards Grid metrics -->
+          <div class="result-metrics-grid">
+            <div class="metric-card">
+              <p class="metric-label">Proporsi Area</p>
+              <div id="result-metric-area" class="metric-value">0%</div>
+              <p class="metric-desc">dari total bidang foto</p>
+            </div>
+            <div class="metric-card">
+              <p class="metric-label">Ukuran Luka</p>
+              <div id="result-metric-size" class="metric-value">0 cm²</div>
+              <p id="result-metric-size-desc" class="metric-desc">Estimasi area luka</p>
+            </div>
+          </div>
+
+          <div id="result-accuracy-val" class="accuracy-badge">Tingkat Deteksi: 0%</div>
+          
+          <!-- Delta changes info bar -->
+          <div id="result-trend-bar" class="trend-info-bar">
+            <!-- Dynamically loaded via JS -->
+          </div>
+
+          <!-- Care tips list -->
+          <div class="tips-section">
+            <h4 class="tips-title">Panduan Perawatan Umum</h4>
+            <ul id="result-tips-list" class="tips-list">
+              <!-- Loaded dynamically -->
+            </ul>
+          </div>
+
+          <div class="form-group" style="margin-top:var(--space-xl); margin-bottom:0">
+            <label class="form-label" for="input-result-notes">Catatan Khusus Hari Ini</label>
+            <input type="text" id="input-result-notes" class="input-field" placeholder="Contoh: Perban baru diganti, tidak nyeri">
+          </div>
+
+          <p class="med-disclaimer">Disclaimer: Hasil analisis ini berbasis kecerdasan buatan modular dan bukan merupakan rujukan medis formal. Silakan hubungi dokter ahli untuk keluhan klinis.</p>
+        </div>
+      </div>
+
+      <!-- Action buttons footer -->
+      <div class="result-actions">
+        <button id="btn-retake-photo" class="btn btn-outline"><span class="icon">camera_enhance</span> Ulangi</button>
+        <button id="btn-save-analysis" class="btn btn-primary"><span class="icon">check_circle</span> Simpan Log</button>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 8: DETAIL SESI ==================== -->
+    <div id="screen-session-detail" class="screen-container hidden">
+      <div class="app-header">
+        <button class="btn-icon back-btn-trigger" data-dest="screen-home"><span class="icon">arrow_back</span></button>
+        <h2 id="detail-title-text" class="app-header-title">Nama Sesi Luka</h2>
+        <div class="right-action">
+          <button id="btn-detail-menu" class="btn-icon"><span class="icon" style="color:var(--error)">delete_forever</span></button>
+        </div>
+      </div>
+
+      <!-- Scrollable details list -->
+      <div class="scrollable">
+        
+        <!-- 2x2 Stats Grid -->
+        <div class="stats-grid-2x2">
+          <div class="stats-card-item">
+            <div class="stats-card-header">
+              <span class="stats-card-label">Dipantau</span>
+              <span class="icon">calendar_today</span>
+            </div>
+            <span id="detail-stat-days" class="stats-card-value">0</span>
+            <span class="body-sm" style="color:var(--on-primary-container)">Hari</span>
+          </div>
+
+          <div class="stats-card-item">
+            <div class="stats-card-header">
+              <span class="stats-card-label">Total Foto</span>
+              <span class="icon">photo_library</span>
+            </div>
+            <span id="detail-stat-photos" class="stats-card-value">0</span>
+            <span class="body-sm" style="color:var(--on-primary-container)">Log Foto</span>
+          </div>
+
+          <div class="stats-card-item">
+            <div class="stats-card-header">
+              <span class="stats-card-label">Tren</span>
+              <span class="icon">trending_down</span>
+            </div>
+            <span id="detail-stat-trend" class="badge badge-neutral" style="margin-top:var(--space-xs); font-size:13px; padding:6px 12px">Stabil</span>
+          </div>
+
+          <div class="stats-card-item">
+            <div class="stats-card-header">
+              <span class="stats-card-label">Terkecil</span>
+              <span class="icon">straighten</span>
+            </div>
+            <span id="detail-stat-min-area" class="stats-card-value">0 cm²</span>
+            <span class="body-sm" style="color:var(--on-primary-container)">Rekor area</span>
+          </div>
+        </div>
+
+        <!-- Progression Chart Card -->
+        <div id="detail-chart-card" class="card chart-container-card hidden">
+          <div class="chart-header">
+            <h4 class="section-title" style="font-size:15px">Tren Ukuran Luka</h4>
+            <div class="chart-filters">
+              <span class="chart-filter-chip active">Semua</span>
+            </div>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="progress-chart-canvas"></canvas>
+          </div>
+          <div id="chart-insight-text" class="chart-insight-bar">
+            Memuat grafik perkembangan...
+          </div>
+        </div>
+
+        <!-- Visual Before/After Panel -->
+        <div id="detail-before-after-card" class="card before-after-card hidden">
+          <h4 class="section-title" style="font-size:15px">Komparasi Progres Awal vs Akhir</h4>
+          <div class="before-after-grid">
+            <div class="before-after-panel">
+              <span class="before-after-label">Foto Pertama</span>
+              <div class="before-after-img-wrapper">
+                <img id="before-image" class="before-after-img" src="" alt="First wound">
+              </div>
+              <span id="before-date" class="before-after-caption">Tanggal</span>
+              <span id="before-area" class="before-after-caption" style="font-weight:600; color:var(--on-surface)">0 cm²</span>
+            </div>
+
+            <div class="before-after-panel">
+              <span class="before-after-label">Terbaru</span>
+              <div class="before-after-img-wrapper">
+                <img id="after-image" class="before-after-img" src="" alt="Latest wound">
+              </div>
+              <span id="after-date" class="before-after-caption">Tanggal</span>
+              <span id="after-area" class="before-after-caption" style="font-weight:600; color:var(--on-surface)">0 cm²</span>
+            </div>
+
+            <div id="before-after-delta-label" class="before-after-delta">
+              Mengukur selisih perkembangan...
+            </div>
+          </div>
+        </div>
+
+        <!-- History Timeline lists -->
+        <div class="timeline-section">
+          <h4 class="section-title" style="margin-bottom:var(--space-lg)">Linimasa Pemantauan</h4>
+          <div id="detail-timeline-list" class="timeline-list">
+            <!-- List timeline log elements rendered via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action buttons footer -->
+      <div class="detail-actions-footer">
+        <button id="detail-btn-gallery" class="btn btn-outline"><span class="icon">photo_library</span> Galeri</button>
+        <button id="detail-btn-camera" class="btn btn-primary"><span class="icon">photo_camera</span> Kamera HP</button>
+      </div>
+    </div>
+
+  </div> <!-- /#app-container -->
+
+  
+  <!-- ==================== SHARED LAYOUT: BOTTOM SHEETS & MODALS ==================== -->
+  
+  <!-- Bottom Sheet Backdrop -->
+  <div id="bottom-sheet-backdrop" class="backdrop hidden"></div>
+
+  <!-- Bottom Sheet: Add Photo Selection -->
+  <div id="bottom-sheet-add-photo" class="bottom-sheet hidden">
+    <div id="btn-sheet-close-handle" class="bottom-sheet-header">
+      <div class="bottom-sheet-drag-handle"></div>
+    </div>
+    <div class="bottom-sheet-content" style="text-align:center">
+      <h3 class="headline-md" style="margin-bottom:var(--space-xs)">Tambah Foto Baru</h3>
+      <p class="body-sm" style="margin-bottom:var(--space-lg)">Pilih metode pengambilan foto luka Anda</p>
+      
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-md); margin-bottom:var(--space-lg)">
+        <button id="btn-sheet-camera" class="btn btn-primary btn-lg" style="flex-direction:column; height:90px; border-radius:var(--radius-lg)">
+          <span class="icon" style="font-size:32px">photo_camera</span>
+          <span style="font-size:13px; margin-top:4px">Kamera HP Live</span>
+        </button>
+        
+        <button id="btn-sheet-gallery" class="btn btn-outline btn-lg" style="flex-direction:column; height:90px; border-radius:var(--radius-lg)">
+          <span class="icon" style="font-size:32px; color:var(--secondary)">photo_library</span>
+          <span style="font-size:13px; margin-top:4px">Galeri Upload</span>
+        </button>
+      </div>
+      
+      <p class="body-sm" style="font-size:12px; color:var(--on-surface-variant)">Semua foto yang dimasukkan akan dikompresi di bawah 500KB dan hanya disimpan secara lokal.</p>
+    </div>
+  </div>
+
+  <!-- Dialog Pop: Confirm Action -->
+  <div id="dialog-confirm-overlay" class="dialog-overlay">
+    <div class="dialog-card">
+      <h3 id="dialog-confirm-title" class="dialog-title">Konfirmasi Aksi</h3>
+      <p id="dialog-confirm-text" class="dialog-text">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+      <div class="dialog-actions">
+        <button id="btn-dialog-cancel" class="btn btn-outline" style="height:36px; padding:0 16px">Batal</button>
+        <button id="btn-dialog-confirm" class="btn btn-danger" style="height:36px; padding:0 16px">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Message Overlay Panel -->
+  <div id="toast-container-box" class="toast-container"></div>
+
+
+  <!-- ==================== CONTROLLER SCRIPTS ==================== -->
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/ai-mock.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/dummyImages.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

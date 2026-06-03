@@ -1,0 +1,90 @@
+/* css/variables.css */
+:root {
+  /* Warm Clinical Premium Color Palette */
+  --primary: #131b2e; /* Deep Slate (Primary Container color from design) */
+  --on-primary: #ffffff;
+  --primary-container: #131b2e;
+  --on-primary-container: #7c839b;
+
+  --secondary: #006b5f; /* Medical Teal (Accent) */
+  --on-secondary: #ffffff;
+  --secondary-container: #e6f6f4; /* 10% opacity equivalent for light badges */
+  --on-secondary-container: #006b5f;
+
+  --tertiary: #000000;
+  --on-tertiary: #ffffff;
+
+  --background: #f8f9ff; /* Clinical background */
+  --on-background: #0b1c30;
+
+  --surface: #ffffff; /* Clean room white cards */
+  --surface-dim: #cbdbf5;
+  --surface-bright: #f8f9ff;
+  
+  /* Surface Containers */
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #eff4ff;
+  --surface-container: #e5eeff;
+  --surface-container-high: #dce9ff;
+  --surface-container-highest: #d3e4fe;
+
+  --on-surface: #0b1c30;
+  --on-surface-variant: #45464d;
+
+  --outline: #76777d;
+  --outline-variant: #c6c6cd;
+
+  /* Status Colors */
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+
+  --success: #006b5f;
+  --success-container: #d2f8f2;
+  --on-success-container: #004d44;
+
+  --warning: #b45309;
+  --warning-container: #fef3c7;
+  --on-warning-container: #78350f;
+
+  /* Typography Specs (Be Vietnam Pro) */
+  --font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --fs-headline-xl: 48px;
+  --fs-headline-lg: 32px;
+  --fs-headline-md: 24px;
+  --fs-body-lg: 18px;
+  --fs-body-md: 16px;
+  --fs-body-sm: 14px;
+  --fs-label-md: 14px;
+  --fs-label-sm: 12px;
+
+  /* Corner Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;      /* Inputs, tags, chips */
+  --radius-md: 12px;
+  --radius-lg: 16px;     /* Cards, sheets, main buttons */
+  --radius-xl: 24px;
+  --radius-full: 9999px; /* Badges, pill buttons, avatars */
+
+  /* Spacing (8px Spatial Rhythm) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-gutter: 24px;
+  
+  /* Shadows */
+  --shadow-card: 0 2px 20px rgba(11, 28, 48, 0.04);
+  --shadow-fab: 0 4px 24px rgba(11, 28, 48, 0.10);
+  --shadow-sheet: 0 -4px 20px rgba(11, 28, 48, 0.06);
+  --shadow-pop: 0 8px 30px rgba(11, 28, 48, 0.12);
+
+  /* Animation Easing & Times */
+  --transition-default: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}

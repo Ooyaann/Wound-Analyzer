@@ -1,0 +1,11 @@
+# Ignore Kaggle dataset folder since it is very heavy and not needed for deployment
+CO2Wounds-V2 Extended Chronic Wounds Dataset From Leprosy Patients/
+
+# Ignore local server node_modules if any
+node_modules/
+
+# Ignore temporary/log files
+.system_generated/
+*.log
+.DS_Store
+Thumbs.db
