@@ -51,6 +51,11 @@ body {
   }
   body {
     background-color: var(--background);
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block; /* Disable flex centering on mobile to prevent top gap */
+    min-height: 100dvh;
+    height: 100dvh;
   }
 }
 

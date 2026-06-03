@@ -242,15 +242,18 @@
 
 /* --- General Header / App Bar for screens --- */
 .app-header {
-  height: 56px;
+  height: calc(56px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-gutter);
+  padding-left: var(--space-gutter);
+  padding-right: var(--space-gutter);
   background-color: var(--surface);
   border-bottom: 1px solid var(--outline-variant);
   z-index: 90;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .app-header-title {
@@ -607,13 +610,14 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 56px;
+  height: calc(56px + env(safe-area-inset-top));
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 var(--space-gutter);
+  padding: env(safe-area-inset-top) var(--space-gutter) 0 var(--space-gutter);
   z-index: 102;
   background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+  box-sizing: border-box;
 }
 
 .camera-back-btn, .camera-flash-btn {
