@@ -276,7 +276,7 @@
 #screen-home {
   display: flex;
   flex-direction: column;
-  height: calc(100% - 64px); /* reserve bottom nav height */
+  height: calc(100% - (64px + env(safe-area-inset-bottom))); /* reserve bottom nav height with safe area */
   width: 100%;
 }
 
@@ -718,14 +718,15 @@
 
 /* Action Controls Panel */
 .camera-controls {
-  height: 120px;
+  height: calc(120px + env(safe-area-inset-bottom));
   background-color: rgba(0,0,0,0.9);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 var(--space-xl);
+  padding: 0 var(--space-xl) env(safe-area-inset-bottom) var(--space-xl);
   z-index: 102;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .camera-action-btn {
@@ -1352,7 +1353,7 @@
 }
 
 .detail-actions-footer {
-  padding: var(--space-md) var(--space-gutter);
+  padding: var(--space-md) var(--space-gutter) calc(var(--space-md) + env(safe-area-inset-bottom)) var(--space-gutter);
   background-color: var(--surface);
   border-top: 1px solid var(--outline-variant);
   display: grid;
