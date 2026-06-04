@@ -65,7 +65,8 @@ async function seedDummyData() {
       25.5, 45.2, 29.3, // necrotic, slough, granulation
       'worsening', 
       'Terdeteksi area nekrotik yang meluas di tepi luka. Jaringan slough mendominasi dasar luka akibat kurangnya vaskularisasi saraf tepi kaki. Disarankan debridement lanjutan dan pemeriksaan tekanan biomekanik pada area ulkus kaki kanan.',
-      now - 2 * dayMs // 2 days ago
+      now - 2 * dayMs, // 2 days ago
+      0, 185 // isBlurry, blurScore
     );
     
     // 2. Ulkus Kronis Tungkai (Lesi Kusta) - 2 PHOTOS (TIMELINE)
@@ -74,19 +75,21 @@ async function seedDummyData() {
       bodyLocation: 'Kaki Kiri',
       notes: 'Pasien Ny. Siti (Riwayat Reaksi Reversal)'
     });
-    // Entry 1 (14 days ago)
+    // Entry 1 (14 days ago) - BLURRY PHOTO SAMPLE
     await addDummyEntry(s2, 'wound2.jpg', 
       45.0, 40.0, 15.0, 
       'stable', 
-      'Kunjungan awal: Luka didominasi jaringan mati hitam (eschar) dan slough tebal kekuningan. Mulai perawatan moist wound healing dan salep proteolitik.',
-      now - 14 * dayMs
+      'Kunjungan awal: Luka didominasi jaringan mati hitam (eschar) dan slough tebal kekuningan. Catatan: Foto sedikit buram karena gerakan tangan pasien yang bergetar.',
+      now - 14 * dayMs,
+      1, 38 // isBlurry, blurScore
     );
-    // Entry 2 (Today)
+    // Entry 2 (Today) - SHARP ENHANCED PHOTO SAMPLE
     await addDummyEntry(s2, 'wound4.jpg', 
       5.0, 30.0, 65.0, 
       'improving', 
       'Perkembangan sangat baik setelah 2 minggu. Area granulasi (jaringan merah sehat) kini mendominasi dasar luka sebesar 65%. Jaringan mati (nekrotik) sudah hampir bersih total. Pertahankan balutan.',
-      now
+      now,
+      0, 245 // isBlurry, blurScore
     );
     
     // 3. Luka Lesi Ekstremitas Atas
@@ -99,7 +102,8 @@ async function seedDummyData() {
       0.0, 15.0, 85.0, // necrotic, slough, granulation
       'stable', 
       'Kondisi luka stabil dan mulai memasuki fase epitelisasi. Tepi luka terlihat menyempit dengan jaringan granulasi yang padat. Tidak ditemukan tanda-tanda infeksi sekunder pada lesi.',
-      now - 5 * dayMs // 5 days ago
+      now - 5 * dayMs, // 5 days ago
+      0, 210 // isBlurry, blurScore
     );
     
     console.log("Dummy data seeded successfully.");
@@ -108,7 +112,7 @@ async function seedDummyData() {
   }
 }
 
-async function addDummyEntry(sessionId, imgUrl, necrotic, slough, granulation, trend, aiNotes, timestampOverride = null) {
+async function addDummyEntry(sessionId, imgUrl, necrotic, slough, granulation, trend, aiNotes, timestampOverride = null, isBlurry = 0, blurScore = 200) {
   try {
     let blob;
     // Fallback: If it's one of the dummy image keys, load from base64 global
@@ -162,7 +166,12 @@ async function addDummyEntry(sessionId, imgUrl, necrotic, slough, granulation, t
       trend: trend,
       confidence: 95,
       notes: aiNotes,
-      takenAt: timestampOverride || Date.now()
+      takenAt: timestampOverride || Date.now(),
+      necroticPercent: Number(necrotic || 0),
+      sloughPercent: Number(slough || 0),
+      granulationPercent: Number(granulation || 0),
+      isBlurry: isBlurry ? 1 : 0,
+      blurScore: Number(blurScore || 0)
     };
     
     await window.WoundDb.addEntry(entryObj);
@@ -286,6 +295,8 @@ function setupEventBindings() {
         renderDashboard();
       } else if (tabId === 'tab-reports') {
         renderReportsTab();
+      } else if (tabId === 'tab-algorithm') {
+        renderAlgorithmTab();
       } else if (tabId === 'tab-settings') {
         renderSettingsTab();
       }
@@ -393,31 +404,91 @@ function setupEventBindings() {
       const val = parseFloat(e.target.value);
       $('#ai-sensitivity-val').textContent = val.toFixed(2) + 'x';
       
-      if (AppState.analysisResult && AppState.analysisResult.rawImageData) {
-        // Recalculate
-        const { areaPercent, boundingBox } = window.WoundAI.analyzePixels(AppState.analysisResult.rawImageData, val);
+      if (AppState.analysisResult && AppState.analysisResult.rawImageData && typeof tf !== 'undefined') {
+        // Recalculate using TF.js WebGL parallel tensors
+        const width = 400;
+        const height = 300;
+        const rawData = AppState.analysisResult.rawImageData;
+        
+        const result = tf.tidy(() => {
+          const imgTensor = tf.browser.fromPixels(rawData);
+          const channels = tf.split(imgTensor, 3, 2);
+          const r = channels[0].squeeze();
+          const g = channels[1].squeeze();
+          const b = channels[2].squeeze();
+          
+          const sensTensor = tf.scalar(val);
+          const condR1 = r.greater(tf.scalar(60));
+          const condR2 = r.greater(g.mul(sensTensor));
+          const condR3 = r.greater(b.mul(sensTensor));
+          
+          const brightness = r.add(g).add(b);
+          const condBrightness = brightness.less(tf.scalar(650));
+          
+          const woundMask = condR1.and(condR2).and(condR3).and(condBrightness);
+          const woundPixels = tf.sum(woundMask);
+          
+          const condNecrotic = r.less(tf.scalar(75)).and(g.less(tf.scalar(75))).and(b.less(tf.scalar(75))).and(woundMask);
+          const condSlough = g.greater(b.mul(tf.scalar(0.95))).and(r.greater(tf.scalar(90))).and(g.greater(tf.scalar(80))).and(woundMask).and(condNecrotic.not());
+          const condGranulation = woundMask.and(condNecrotic.not()).and(condSlough.not());
+          
+          return {
+            maskData: woundMask.dataSync(),
+            woundCount: woundPixels.dataSync()[0],
+            necroticCount: tf.sum(condNecrotic).dataSync()[0],
+            sloughCount: tf.sum(condSlough).dataSync()[0],
+            granulationCount: tf.sum(condGranulation).dataSync()[0]
+          };
+        });
+        
+        const totalPixels = width * height;
+        const areaPercent = (result.woundCount / totalPixels) * 100;
         const areaCm2 = Math.round(areaPercent * 1.2 * 10) / 10;
-        const maskPath = window.WoundAI.generateDynamicMask(boundingBox, 400, 300, areaPercent);
+        
+        let necroticPercent = 0;
+        let sloughPercent = 0;
+        let granulationPercent = 0;
+        if (result.woundCount > 0) {
+          necroticPercent = Math.round((result.necroticCount / result.woundCount) * 100);
+          sloughPercent = Math.round((result.sloughCount / result.woundCount) * 100);
+          granulationPercent = Math.max(0, 100 - necroticPercent - sloughPercent);
+        }
         
         // Update AppState
         AppState.analysisResult.areaPercent = areaPercent;
         AppState.analysisResult.areaCm2 = areaCm2;
-        AppState.analysisResult.maskData.path = maskPath;
+        AppState.analysisResult.maskData.tensor = result.maskData;
+        AppState.analysisResult.necroticPercent = necroticPercent;
+        AppState.analysisResult.sloughPercent = sloughPercent;
+        AppState.analysisResult.granulationPercent = granulationPercent;
         
-        // Redraw Mask
-        const svgOverlay = $('#result-mask-svg');
-        const pathElement = svgOverlay.querySelector('path');
-        if (maskPath) {
-          pathElement.setAttribute('d', maskPath);
-          svgOverlay.classList.remove('hidden');
+        // Redraw Mask to Canvas
+        const canvasMask = $('#result-mask-canvas');
+        if (areaPercent > 0) {
+          window.WoundAI.drawPixelMaskOnCanvas(canvasMask, result.maskData, width, height);
+          canvasMask.classList.remove('hidden');
         } else {
-          pathElement.setAttribute('d', '');
-          svgOverlay.classList.add('hidden');
+          canvasMask.classList.add('hidden');
         }
         
-        // Update Metrics (no animation, instant)
+        // Update Metrics
         $('#result-metric-area').textContent = areaPercent.toFixed(1) + '%';
         $('#result-metric-size').textContent = areaCm2.toFixed(1) + ' cm²';
+
+        // Update Tissue composition
+        const tissueCard = $('#result-tissue-composition-card');
+        if (areaPercent > 0) {
+          tissueCard.classList.remove('hidden');
+          $('#tissue-bar-granulation').style.width = `${granulationPercent}%`;
+          $('#tissue-bar-slough').style.width = `${sloughPercent}%`;
+          $('#tissue-bar-necrotic').style.width = `${necroticPercent}%`;
+          
+          $('#tissue-val-granulation').textContent = `${granulationPercent}%`;
+          $('#tissue-val-slough').textContent = `${sloughPercent}%`;
+          $('#tissue-val-necrotic').textContent = `${necroticPercent}%`;
+        } else {
+          tissueCard.classList.add('hidden');
+        }
       }
     });
   }
@@ -630,6 +701,8 @@ async function initHomeScreen() {
     await renderDashboard();
   } else if (activeTab === 'tab-reports') {
     await renderReportsTab();
+  } else if (activeTab === 'tab-algorithm') {
+    await renderAlgorithmTab();
   } else if (activeTab === 'tab-settings') {
     await renderSettingsTab();
   }
@@ -651,14 +724,14 @@ async function renderDashboard() {
 
   // Check for dummy data seeding (Force wipe old dummy data to use new detailed Kaggle images)
   let sessions = await window.WoundDb.getAllSessions();
-  if (localStorage.getItem('dummySeededV8') !== 'true') {
+  if (localStorage.getItem('dummySeededV10') !== 'true') {
     console.log("Upgrading dummy data to include base64 images...");
     for (const s of sessions) {
       // Clean up previous placeholder sessions
       await window.WoundDb.deleteSession(s.id);
     }
     await seedDummyData();
-    localStorage.setItem('dummySeededV8', 'true');
+    localStorage.setItem('dummySeededV10', 'true');
     sessions = await window.WoundDb.getAllSessions();
   }
 
@@ -978,28 +1051,25 @@ function initAnalysisResultScreen() {
   // Setup SVG size constraints
   svgOverlay.setAttribute('viewBox', '0 0 400 300');
   
-  // Draw mask
-  const pathElement = svgOverlay.querySelector('path');
-  if (result.maskData && result.maskData.path) {
-    pathElement.setAttribute('d', result.maskData.path);
-    pathElement.classList.add('wound-mask-pulse');
+  // Draw mask on Canvas
+  const canvasMask = $('#result-mask-canvas');
+  if (result.maskData && result.maskData.tensor) {
+    window.WoundAI.drawPixelMaskOnCanvas(canvasMask, result.maskData.tensor, 400, 300);
     $('#result-toggle-overlay').classList.remove('hidden');
     $('#result-toggle-overlay').classList.add('active');
-    svgOverlay.classList.remove('hidden');
+    canvasMask.classList.remove('hidden');
   } else {
-    // Healthy skin, no mask
-    pathElement.setAttribute('d', '');
     $('#result-toggle-overlay').classList.add('hidden');
-    svgOverlay.classList.add('hidden');
+    canvasMask.classList.add('hidden');
   }
 
   // Toggle mask overlay click listener
   $('#result-toggle-overlay').onclick = () => {
     const isActive = $('#result-toggle-overlay').classList.toggle('active');
-    if (isActive && result.maskData && result.maskData.path) {
-      svgOverlay.classList.remove('hidden');
+    if (isActive && result.maskData && result.maskData.tensor) {
+      canvasMask.classList.remove('hidden');
     } else {
-      svgOverlay.classList.add('hidden');
+      canvasMask.classList.add('hidden');
     }
   };
 
@@ -1014,6 +1084,33 @@ function initAnalysisResultScreen() {
   animateCountUp(sizeValEl, result.areaCm2, ' cm²');
   
   confidenceEl.textContent = `Tingkat Deteksi: ${result.confidence}%`;
+
+  // Render Blur Warning
+  const blurBadge = $('#result-blur-badge');
+  if (result.isBlurry) {
+    blurBadge.classList.remove('hidden');
+    showToast('Peringatan: Foto terdeteksi buram. Harap ambil ulang jika hasil analisis kurang akurat.', 'error');
+  } else {
+    blurBadge.classList.add('hidden');
+  }
+
+  // Render Tissue Composition (Fase 2)
+  const tissueCard = $('#result-tissue-composition-card');
+  if (result.areaPercent > 0) {
+    tissueCard.classList.remove('hidden');
+    
+    // Set widths
+    $('#tissue-bar-granulation').style.width = `${result.granulationPercent || 0}%`;
+    $('#tissue-bar-slough').style.width = `${result.sloughPercent || 0}%`;
+    $('#tissue-bar-necrotic').style.width = `${result.necroticPercent || 0}%`;
+    
+    // Set values
+    $('#tissue-val-granulation').textContent = `${result.granulationPercent || 0}%`;
+    $('#tissue-val-slough').textContent = `${result.sloughPercent || 0}%`;
+    $('#tissue-val-necrotic').textContent = `${result.necroticPercent || 0}%`;
+  } else {
+    tissueCard.classList.add('hidden');
+  }
 
   // Dynamic Delta Change description styling
   const changeVal = result.areaChange;
@@ -1071,6 +1168,111 @@ function initAnalysisResultScreen() {
     li.textContent = tip;
     tipsContainer.appendChild(li);
   });
+
+  // Autokoreksi Cahaya (Histogram Equalization) click binding
+  const btnEnhance = $('#btn-ai-enhance');
+  if (btnEnhance) {
+    btnEnhance.disabled = false;
+    btnEnhance.style.opacity = '1.0';
+    
+    // Hide histogram container initially on screen load
+    $('#result-histogram-box').classList.add('hidden');
+    
+    btnEnhance.onclick = () => {
+      if (result && result.rawImageData) {
+        showToast('Memproses Autokoreksi Cahaya...', 'info');
+        
+        // Equalize histogram and retrieve distributions
+        const hists = window.WoundAI.equalizeHistogram(result.rawImageData);
+        
+        // Reveal & Render Histograms
+        const histBox = $('#result-histogram-box');
+        histBox.classList.remove('hidden');
+        drawRGBHistogram('hist-before', hists.histBefore);
+        drawRGBHistogram('hist-after', hists.histAfter);
+        
+        // Re-run tensor segmentation with the current sensitivity value
+        const currentSensitivity = parseFloat($('#input-ai-sensitivity').value);
+        
+        if (typeof tf !== 'undefined') {
+          const rawData = result.rawImageData;
+          const recalc = tf.tidy(() => {
+            const imgTensor = tf.browser.fromPixels(rawData);
+            const channels = tf.split(imgTensor, 3, 2);
+            const r = channels[0].squeeze();
+            const g = channels[1].squeeze();
+            const b = channels[2].squeeze();
+            
+            const sensTensor = tf.scalar(currentSensitivity);
+            const condR1 = r.greater(tf.scalar(60));
+            const condR2 = r.greater(g.mul(sensTensor));
+            const condR3 = r.greater(b.mul(sensTensor));
+            const brightness = r.add(g).add(b);
+            const condBrightness = brightness.less(tf.scalar(650));
+            
+            const woundMask = condR1.and(condR2).and(condR3).and(condBrightness);
+            
+            return {
+              maskData: woundMask.dataSync(),
+              woundCount: tf.sum(woundMask).dataSync()[0],
+              necroticCount: tf.sum(r.less(75).and(g.less(75)).and(b.less(75)).and(woundMask)).dataSync()[0],
+              sloughCount: tf.sum(g.greater(b.mul(0.95)).and(r.greater(90)).and(g.greater(80)).and(woundMask).and(r.less(75).and(g.less(75)).and(b.less(75)).and(woundMask).not())).dataSync()[0]
+            };
+          });
+          
+          const totalPixels = 400 * 300;
+          result.areaPercent = (recalc.woundCount / totalPixels) * 100;
+          result.areaCm2 = Math.round(result.areaPercent * 1.2 * 10) / 10;
+          result.maskData.tensor = recalc.maskData;
+          
+          if (recalc.woundCount > 0) {
+            result.necroticPercent = Math.round((recalc.necroticCount / recalc.woundCount) * 100);
+            result.sloughPercent = Math.round((recalc.sloughCount / recalc.woundCount) * 100);
+            result.granulationPercent = Math.max(0, 100 - result.necroticPercent - result.sloughPercent);
+          }
+        }
+        
+        // Update UI
+        // 1. Redraw Mask Canvas
+        const canvasMask = $('#result-mask-canvas');
+        if (result.areaPercent > 0) {
+          window.WoundAI.drawPixelMaskOnCanvas(canvasMask, result.maskData.tensor, 400, 300);
+          canvasMask.classList.remove('hidden');
+        } else {
+          canvasMask.classList.add('hidden');
+        }
+        
+        // 2. Update Metrics
+        $('#result-metric-area').textContent = result.areaPercent.toFixed(1) + '%';
+        $('#result-metric-size').textContent = result.areaCm2.toFixed(1) + ' cm²';
+        
+        // 3. Update Tissue composition
+        if (result.areaPercent > 0) {
+          tissueCard.classList.remove('hidden');
+          $('#tissue-bar-granulation').style.width = `${result.granulationPercent}%`;
+          $('#tissue-bar-slough').style.width = `${result.sloughPercent}%`;
+          $('#tissue-bar-necrotic').style.width = `${result.necroticPercent}%`;
+          
+          $('#tissue-val-granulation').textContent = `${result.granulationPercent}%`;
+          $('#tissue-val-slough').textContent = `${result.sloughPercent}%`;
+          $('#tissue-val-necrotic').textContent = `${result.necroticPercent}%`;
+        } else {
+          tissueCard.classList.add('hidden');
+        }
+        
+        // 4. Update the visual image preview with the enhanced pixel data
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = result.rawImageData.width;
+        tempCanvas.height = result.rawImageData.height;
+        tempCanvas.getContext('2d').putImageData(result.rawImageData, 0, 0);
+        imgElement.src = tempCanvas.toDataURL('image/jpeg');
+        
+        showToast('Koreksi cahaya selesai!', 'success');
+        btnEnhance.disabled = true;
+        btnEnhance.style.opacity = '0.5';
+      }
+    };
+  }
 }
 
 /**
@@ -1205,6 +1407,22 @@ async function initSessionDetailScreen(sessionId) {
     $('#before-area').textContent = `${firstEntry.areaCm2} cm² (${firstEntry.areaPercent}%)`;
     $('#after-area').textContent = `${latestEntry.areaCm2} cm² (${latestEntry.areaPercent}%)`;
     
+    // Set interactive comparison slider sources
+    $('#slider-before-img').src = imgBeforeUrl;
+    $('#slider-after-img').src = imgAfterUrl;
+    
+    const sliderWrapper = $('#interactive-slider-wrapper');
+    const sliderContainer = $('.slider-image-container');
+    const sliderAfter = $('#slider-after-container');
+    const sliderHandle = $('#slider-handle');
+    
+    if (sliderWrapper && sliderContainer && sliderAfter && sliderHandle) {
+      sliderWrapper.classList.remove('hidden');
+      sliderAfter.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
+      sliderHandle.style.left = '50%';
+      bindSliderEvents(sliderContainer, sliderAfter, sliderHandle);
+    }
+    
     // Revoke
     $('#before-image').onload = () => URL.revokeObjectURL(imgBeforeUrl);
     $('#after-image').onload = () => URL.revokeObjectURL(imgAfterUrl);
@@ -1260,16 +1478,44 @@ async function initSessionDetailScreen(sessionId) {
       }
     }
     
+    let tissueBreakdownHTML = '';
+    if (entry.areaPercent > 0) {
+      tissueBreakdownHTML = `
+        <div class="timeline-tissue-breakdown" style="margin-top: 8px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; border-top: 1px dashed var(--outline-variant); padding-top: 8px;">
+          <div style="font-weight: 600; color: var(--on-surface-variant)">Komposisi Jaringan:</div>
+          <div style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--outline-variant); margin: 2px 0 4px 0">
+            <div style="width: ${entry.granulationPercent || 0}%; background-color: #e11d48" title="Granulasi"></div>
+            <div style="width: ${entry.sloughPercent || 0}%; background-color: #eab308" title="Slough"></div>
+            <div style="width: ${entry.necroticPercent || 0}%; background-color: #1e293b" title="Nekrotik"></div>
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: space-between; font-weight: 500;">
+            <span style="color: #e11d48">Granulasi: ${entry.granulationPercent || 0}%</span>
+            <span style="color: #b45309">Slough: ${entry.sloughPercent || 0}%</span>
+            <span style="color: #1e293b">Nekrotik: ${entry.necroticPercent || 0}%</span>
+          </div>
+        </div>
+      `;
+    }
+
+    let blurIndicatorHTML = '';
+    if (entry.isBlurry) {
+      blurIndicatorHTML = `<span class="badge badge-danger" style="display:inline-flex; align-items:center; gap:2px; font-size:10px; padding:2px 6px; margin-top:4px"><span class="icon" style="font-size:12px">warning</span> Foto Buram</span>`;
+    }
+
     item.innerHTML = `
       <div class="timeline-item-header-row">
         <img src="${url}" class="timeline-item-thumb" onload="URL.revokeObjectURL('${url}')" alt="Wound log">
         <div class="timeline-item-details">
           <div class="timeline-item-date">${fullDateStr}</div>
           <div class="timeline-item-area">Ukuran: ${entry.areaCm2} cm² (${entry.areaPercent}%)</div>
+          ${blurIndicatorHTML}
         </div>
         ${changeBadgeHTML}
       </div>
-      <div class="timeline-item-note">${entry.notes || 'Tidak ada catatan untuk foto ini.'}</div>
+      <div class="timeline-item-note">
+        <div>${entry.notes || 'Tidak ada catatan untuk foto ini.'}</div>
+        ${tissueBreakdownHTML}
+      </div>
     `;
 
     // Expand details on click
@@ -1569,6 +1815,127 @@ function openConfirmDialog(title, text, onConfirm) {
   btnCancel.onclick = () => {
     overlay.classList.remove('active');
   };
+}
+
+/**
+ * Render and bind events in the Algorithm Tab page
+ */
+function renderAlgorithmTab() {
+  const accordions = $$('#view-algorithm .accordion-card');
+  accordions.forEach(card => {
+    const header = card.querySelector('.accordion-header');
+    if (header && !header.dataset.bound) {
+      header.addEventListener('click', () => {
+        const isExpanded = card.classList.toggle('expanded');
+        if (isExpanded) {
+          accordions.forEach(c => {
+            if (c !== card) c.classList.remove('expanded');
+          });
+        }
+      });
+      header.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          header.click();
+        }
+      });
+      header.dataset.bound = "true";
+    }
+  });
+}
+
+/**
+ * Render mini flex-bar histogram for RGB channels
+ */
+function drawRGBHistogram(containerId, hist) {
+  const container = $(`#${containerId}`);
+  if (!container || !hist) return;
+  container.innerHTML = '';
+  
+  let maxFreq = 0;
+  for (let i = 0; i < 256; i++) {
+    if (hist.r[i] > maxFreq) maxFreq = hist.r[i];
+    if (hist.g[i] > maxFreq) maxFreq = hist.g[i];
+    if (hist.b[i] > maxFreq) maxFreq = hist.b[i];
+  }
+  if (maxFreq === 0) maxFreq = 1;
+  
+  const step = 8;
+  const numBars = 32;
+  
+  for (let i = 0; i < numBars; i++) {
+    let rSum = 0, gSum = 0, bSum = 0;
+    for (let j = 0; j < step; j++) {
+      const idx = i * step + j;
+      rSum += hist.r[idx];
+      gSum += hist.g[idx];
+      bSum += hist.b[idx];
+    }
+    const rVal = rSum / step;
+    const gVal = gSum / step;
+    const bVal = bSum / step;
+    
+    const bar = document.createElement('div');
+    bar.className = 'hist-bar';
+    bar.style.height = `${Math.max(2, (rVal / maxFreq) * 44)}px`;
+    
+    if (rVal > gVal && rVal > bVal) {
+      bar.className = 'hist-bar hist-bar-r';
+    } else if (gVal > bVal) {
+      bar.className = 'hist-bar hist-bar-g';
+    } else {
+      bar.className = 'hist-bar hist-bar-b';
+    }
+    container.appendChild(bar);
+  }
+}
+
+/**
+ * Bind touch/mouse drag events to Comparison Slider
+ */
+function bindSliderEvents(container, afterContainer, handle) {
+  let isDragging = false;
+  
+  function getPosition(e) {
+    const rect = container.getBoundingClientRect();
+    let clientX = 0;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+    const x = clientX - rect.left;
+    return Math.max(0, Math.min((x / rect.width) * 100, 100));
+  }
+  
+  function updateSlider(pct) {
+    afterContainer.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
+    handle.style.left = `${pct}%`;
+  }
+  
+  function onStart(e) {
+    isDragging = true;
+    updateSlider(getPosition(e));
+  }
+  
+  function onMove(e) {
+    if (!isDragging) return;
+    updateSlider(getPosition(e));
+  }
+  
+  function onEnd() {
+    isDragging = false;
+  }
+  
+  // Clean bindings via property overrides if necessary, or simple listeners
+  container.onmousedown = onStart;
+  container.ontouchstart = onStart;
+  
+  window.onmousemove = onMove;
+  window.ontouchmove = onMove;
+  
+  window.onmouseup = onEnd;
+  window.ontouchend = onEnd;
 }
 
 // Export functions to global scope

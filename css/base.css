@@ -2,14 +2,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -17,7 +20,8 @@ html, body {
 
 body {
   font-family: var(--font-family);
-  background-color: #f0f2f5; /* Backdrop gray for testing, app frame sits in center */
+  background-color: #f0f2f5;
+  /* Backdrop gray for testing, app frame sits in center */
   color: var(--on-background);
   line-height: 1.5;
   display: flex;
@@ -30,10 +34,12 @@ body {
 /* Mobile Frame Wrapper to enforce 4-column fluid mobile grid on desktop, and fill screen on mobile */
 #app-container {
   width: 100%;
-  max-width: 480px; /* Standard premium mobile view */
+  max-width: 480px;
+  /* Standard premium mobile view */
   height: 100vh;
   height: 100dvh;
-  max-height: 920px; /* Tall phone ratio */
+  max-height: 920px;
+  /* Tall phone ratio */
   background-color: var(--background);
   position: relative;
   overflow: hidden;
@@ -41,16 +47,20 @@ body {
   border-radius: 24px;
   display: flex;
   flex-direction: column;
-  transform: translate(0); /* Create containing block for fixed positioning elements */
+  transform: translate(0);
+  /* Create containing block for fixed positioning elements */
 }
 
 /* For mobile devices, take full screen */
 @media (max-width: 480px) {
-  html, body {
+
+  html,
+  body {
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
   }
+
   #app-container {
     max-width: 100%;
     height: 100vh;
@@ -60,16 +70,23 @@ body {
     border-radius: 0;
     box-shadow: none;
   }
+
   body {
     background-color: var(--background);
     margin: 0 !important;
     padding: 0 !important;
-    display: block; /* Disable flex centering on mobile to prevent top gap */
+    display: block;
+    /* Disable flex centering on mobile to prevent top gap */
   }
 }
 
 /* Typography styles matching DESIGN.md */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-family);
   color: var(--on-background);
 }

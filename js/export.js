@@ -101,8 +101,8 @@ async function exportSessionToPDF(session, entries) {
   currentY += 5;
 
   // Table Headers
-  const tableHeaders = ['No', 'Tanggal', 'Sumber', 'Area (%)', 'Ukuran', 'Perubahan', 'Catatan'];
-  const colWidths = [10, 30, 22, 22, 22, 24, 50]; // Total: 180mm
+  const tableHeaders = ['No', 'Tanggal', 'Ukuran (Luka)', 'Perubahan', 'Komposisi Jaringan (G / S / N)', 'Catatan'];
+  const colWidths = [10, 30, 30, 20, 48, 42]; // Total: 180mm
   const startX = 15;
 
   doc.setFillColor(19, 27, 46);
@@ -110,7 +110,7 @@ async function exportSessionToPDF(session, entries) {
   
   doc.setTextColor(255, 255, 255);
   doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   
   let headerX = startX;
   tableHeaders.forEach((header, index) => {
@@ -122,7 +122,7 @@ async function exportSessionToPDF(session, entries) {
 
   // Table Rows
   doc.setFont('Helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   
   entries.forEach((entry, idx) => {
     // Alternating row color
@@ -142,21 +142,18 @@ async function exportSessionToPDF(session, entries) {
     const entryDate = new Date(entry.takenAt).toLocaleDateString('id-ID', {
       day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-    doc.text(entryDate, rowX + 2, currentY + 5);
+    const dateLabel = entry.isBlurry ? `${entryDate} (Buram)` : entryDate;
+    if (entry.isBlurry) {
+      doc.setTextColor(186, 26, 26); // Red color for blurry warnings
+    }
+    doc.text(dateLabel, rowX + 2, currentY + 5);
+    doc.setTextColor(11, 28, 48); // Reset color
     rowX += colWidths[1];
     
-    // Sumber
-    const sourceLabel = entry.source === 'camera' ? 'Kamera HP' : 'Galeri';
-    doc.text(sourceLabel, rowX + 2, currentY + 5);
+    // Ukuran (Luka)
+    const sizeLabel = `${entry.areaCm2} cm² (${entry.areaPercent}%)`;
+    doc.text(sizeLabel, rowX + 2, currentY + 5);
     rowX += colWidths[2];
-    
-    // Area (%)
-    doc.text(`${entry.areaPercent}%`, rowX + 2, currentY + 5);
-    rowX += colWidths[3];
-    
-    // Ukuran (cm²)
-    doc.text(`${entry.areaCm2} cm²`, rowX + 2, currentY + 5);
-    rowX += colWidths[4];
     
     // Perubahan (delta)
     let changeLabel = '-';
@@ -171,10 +168,15 @@ async function exportSessionToPDF(session, entries) {
     }
     doc.text(changeLabel, rowX + 2, currentY + 5);
     doc.setTextColor(11, 28, 48);
-    rowX += colWidths[5];
+    rowX += colWidths[3];
+    
+    // Komposisi Jaringan
+    const tissueLabel = `G: ${entry.granulationPercent || 0}% | S: ${entry.sloughPercent || 0}% | N: ${entry.necroticPercent || 0}%`;
+    doc.text(tissueLabel, rowX + 2, currentY + 5);
+    rowX += colWidths[4];
     
     // Catatan
-    const note = entry.notes ? (entry.notes.length > 25 ? entry.notes.slice(0, 22) + '...' : entry.notes) : '-';
+    const note = entry.notes ? (entry.notes.length > 22 ? entry.notes.slice(0, 19) + '...' : entry.notes) : '-';
     doc.text(note, rowX + 2, currentY + 5);
     
     currentY += 7.5;
@@ -240,13 +242,20 @@ async function exportSessionToPDF(session, entries) {
   doc.setFont('Helvetica', 'italic');
   doc.setFontSize(8);
   doc.setTextColor(118, 119, 125); // outline gray color
+  
+  // Calculate average confidence and blur status
+  const totalConfidence = entries.reduce((acc, e) => acc + (e.confidence || 90), 0);
+  const avgConfidence = Math.round(totalConfidence / entries.length);
+  const blurStatus = entries.some(e => e.isBlurry) ? "Terdeteksi foto buram pada riwayat" : "Semua foto tajam";
+  
   const disclaimerText = [
-    'Peringatan Medis: Laporan analisis ini dihasilkan menggunakan simulasi modular kecerdasan buatan.',
+    `Parameter Teknis: Rerata Deteksi AI: ${avgConfidence}% | Status Citra: ${blurStatus} | Pemrosesan: WebGL GPU Tensors`,
+    'Peringatan Medis: Laporan analisis ini dihasilkan menggunakan pengolahan citra digital modular kecerdasan buatan.',
     'Informasi di atas hanya berfungsi sebagai bantuan dokumentasi visual berkala untuk perkembangan penyembuhan luka.',
     'Laporan ini bukan merupakan saran diagnosis medis formal. Konsultasikan perkembangan luka Anda dengan dokter spesialis secara berkala.'
   ];
   
-  let disclaimerY = pageHeight - 24;
+  let disclaimerY = pageHeight - 28;
   disclaimerText.forEach(line => {
     doc.text(line, pageWidth / 2, disclaimerY, { align: 'center' });
     disclaimerY += 4;

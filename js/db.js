@@ -216,7 +216,12 @@ class WoundDatabase {
         trend: entry.trend || 'stable', // 'improving' | 'stable' | 'worsening'
         confidence: Number(entry.confidence || 90),
         notes: entry.notes || '',
-        takenAt: entry.takenAt || Date.now()
+        takenAt: entry.takenAt || Date.now(),
+        necroticPercent: Number(entry.necroticPercent || 0),
+        sloughPercent: Number(entry.sloughPercent || 0),
+        granulationPercent: Number(entry.granulationPercent || 0),
+        isBlurry: entry.isBlurry ? 1 : 0,
+        blurScore: Number(entry.blurScore || 0)
       };
 
       const request = store.add(newEntry);

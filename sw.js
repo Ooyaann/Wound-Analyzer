@@ -1,6 +1,5 @@
 /* sw.js */
-
-const CACHE_NAME = 'wound-analyzer-cache-v4';
+const CACHE_NAME = 'wound-analyzer-cache-v5';
 const ASSETS_TO_CACHE = [
   'index.html',
   'manifest.json',
@@ -20,11 +19,11 @@ const ASSETS_TO_CACHE = [
   // External Libraries CDNs
   'https://cdn.jsdelivr.net/npm/chart.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js',
   // Google Fonts CSS
   'https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200'
 ];
-
 // Install Service Worker and cache resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -58,7 +57,7 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      
+
       // Fallback to network
       return fetch(event.request).then((networkResponse) => {
         // Don't cache dynamic or analytical network calls

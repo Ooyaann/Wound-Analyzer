@@ -26,6 +26,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- jsPDF CDN for PDF export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- TensorFlow.js CDN for client-side deep learning/tensors -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
 </head>
 <body>
 
@@ -295,6 +297,111 @@
         </div>
       </div>
 
+      <!-- SUBVIEW D: ALGORITHM & METHODOLOGY VIEW -->
+      <div id="view-algorithm" class="tab-subview scrollable hidden">
+        <div class="home-welcome-section">
+          <p class="home-greetings">Sistem Multimedia</p>
+          <h2 class="home-date">Metodologi & Algoritma Citra</h2>
+        </div>
+
+        <div class="report-info-banner" style="margin-bottom:var(--space-md)">
+          <span class="icon" style="font-size:20px; color:var(--secondary)">neurology</span>
+          <p>Penjelasan algoritma pengolahan isyarat dan citra digital yang berjalan di dalam aplikasi ini.</p>
+        </div>
+
+        <div class="algorithm-list">
+          <!-- Accordion Item 1: Histogram Equalization -->
+          <div class="algorithm-card accordion-card">
+            <div class="accordion-header" tabindex="0">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span class="icon" style="color:var(--secondary)">hdr_auto</span>
+                <span class="algorithm-card-title">1. Autokoreksi Cahaya (Histogram Equalization)</span>
+              </div>
+              <span class="icon accordion-arrow">expand_more</span>
+            </div>
+            <div class="accordion-content">
+              <p class="body-sm">Algoritma ini meratakan kecerahan dan kontras piksel gambar agar deteksi warna luka lebih optimal dari kondisi pencahayaan yang berbeda.</p>
+              <div class="code-block-formula">
+                <code>s_k = T(r_k) = (L-1) * sum_{j=0}^{k} p_r(r_j)</code>
+              </div>
+              <p class="body-sm" style="margin-top:var(--space-xs)"><strong>Langkah-langkah:</strong></p>
+              <ol class="step-list body-sm">
+                <li>Hitung histogram warna untuk tiap tingkat keabuan (0-255).</li>
+                <li>Tentukan CDF (Cumulative Distribution Function) dari histogram tersebut.</li>
+                <li>Petakan nilai piksel lama ke nilai piksel baru berdasarkan rasio CDF yang dinormalisasi.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Accordion Item 2: Laplacian Variance -->
+          <div class="algorithm-card accordion-card">
+            <div class="accordion-header" tabindex="0">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span class="icon" style="color:var(--secondary)">warning</span>
+                <span class="algorithm-card-title">2. Deteksi Foto Buram (Laplacian Variance)</span>
+              </div>
+              <span class="icon accordion-arrow">expand_more</span>
+            </div>
+            <div class="accordion-content">
+              <p class="body-sm">Mendeteksi kekaburan gambar (blur) dengan melakukan konvolusi citra menggunakan kernel Laplacian untuk mencari tepi objek kasar.</p>
+              <div class="kernel-matrix">
+                <div class="matrix-row"><span>0</span><span>1</span><span>0</span></div>
+                <div class="matrix-row"><span>1</span><span>-4</span><span>1</span></div>
+                <div class="matrix-row"><span>0</span><span>1</span><span>0</span></div>
+              </div>
+              <p class="body-sm" style="margin-top:var(--space-sm)"><strong>Penjelasan:</strong></p>
+              <p class="body-sm">Hasil konvolusi kernel Laplacian memberikan respons tepi tinggi. Jika variansi dari respons tepi tersebut di bawah <strong>50.0</strong>, foto dikategorikan buram (blurry) karena tidak memiliki garis tepi tajam yang jelas.</p>
+            </div>
+          </div>
+
+          <!-- Accordion Item 3: Color Heuristic -->
+          <div class="algorithm-card accordion-card">
+            <div class="accordion-header" tabindex="0">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span class="icon" style="color:var(--secondary)">palette</span>
+                <span class="algorithm-card-title">3. Segmentasi Warna & Klasifikasi Jaringan</span>
+              </div>
+              <span class="icon accordion-arrow">expand_more</span>
+            </div>
+            <div class="accordion-content">
+              <p class="body-sm">Mengidentifikasi area luka dan membagi komposisi jaringan dasar luka menjadi tiga jenis warna medis:</p>
+              <ul class="body-sm" style="list-style-type:disc; padding-left:16px; margin:var(--space-xs) 0">
+                <li><strong style="color:#e11d48">Granulasi (Merah):</strong> Piksel dengan R tinggi dominan terhadap G & B. Menunjukkan pemulihan jaringan sehat.</li>
+                <li><strong style="color:#b45309">Slough (Kuning):</strong> Mengandung lemak & jaringan mati kekuningan. Rasio G mendekati B, R tinggi.</li>
+                <li><strong style="color:#1e293b">Nekrotik (Hitam/Eschar):</strong> Jaringan mati gelap gulita. Nilai RGB seluruhnya sangat rendah (&lt; 75).</li>
+              </ul>
+              <div class="code-block-formula">
+                <code>Luka = (R > 60) & (R > G * sens) & (R > B * sens)</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Item 4: Deep Learning U-Net -->
+          <div class="algorithm-card accordion-card">
+            <div class="accordion-header" tabindex="0">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span class="icon" style="color:var(--secondary)">grid_view</span>
+                <span class="algorithm-card-title">4. Deep Learning U-Net (Inference Web)</span>
+              </div>
+              <span class="icon accordion-arrow">expand_more</span>
+            </div>
+            <div class="accordion-content">
+              <p class="body-sm">Model segmentasi semantik piksel (U-Net) yang dilatih menggunakan PyTorch di dataset <strong>CO2Wounds-V2</strong> lepra pasien.</p>
+              <div class="unet-schema">
+                <pre style="font-size:10px; line-height:1.2; font-family:monospace; color:var(--secondary)">
+Input [256x256x3] ──> Conv2D ──┐        ┌──> ConvTranspose ──> Output
+                              ▼        ▲
+                         MaxPool ──┐  ┌── ConvTranspose
+                                   ▼  ▲
+                              Bottleneck [1024]
+                </pre>
+              </div>
+              <p class="body-sm" style="margin-top:var(--space-xs)">Inference berjalan secara paralel di GPU lokal peramban client menggunakan operator Tensor (WebGL) TensorFlow.js.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Sticky Bottom Navigation Bar -->
       <div class="bottom-nav">
         <a class="nav-tab active" data-tab="tab-home">
@@ -304,6 +411,10 @@
         <a class="nav-tab" data-tab="tab-reports">
           <span class="icon">bar_chart</span>
           <span class="label">Laporan</span>
+        </a>
+        <a class="nav-tab" data-tab="tab-algorithm">
+          <span class="icon">neurology</span>
+          <span class="label">Algoritma</span>
         </a>
         <a class="nav-tab" data-tab="tab-settings">
           <span class="icon">settings</span>
@@ -438,13 +549,11 @@
       <div class="result-image-container">
         <img id="result-preview-photo" class="result-photo" src="" alt="Captured analysis">
         
-        <!-- SVG overlay for segments mask -->
-        <svg id="result-mask-svg" class="result-svg-overlay">
-          <!-- Filled path loaded in AI mock -->
-          <path d="" fill="#006b5f" fill-opacity="0.4" stroke="#006b5f" stroke-width="3" />
-        </svg>
+        <!-- Canvas overlay for pixel-level segments mask (TensorFlow.js output) -->
+        <canvas id="result-mask-canvas" class="result-canvas-overlay"></canvas>
 
         <span class="result-image-badge"><span class="icon" style="font-size:16px">verified</span> ANALISIS SELESAI</span>
+        <span id="result-blur-badge" class="result-image-badge hidden" style="background-color:var(--error); right:auto; left:var(--space-md); border:none"><span class="icon" style="font-size:16px">warning</span> FOTO BURAM (REKOMENDASI FOTO ULANG)</span>
         
         <div id="result-toggle-overlay" class="result-toggle-overlay active">
           <span>Overlay Masker</span>
@@ -468,6 +577,31 @@
             </div>
             <input type="range" id="input-ai-sensitivity" min="1.0" max="1.6" step="0.05" value="1.25" class="slider-field">
             <p class="metric-desc" style="margin-top:var(--space-xs)">Geser untuk menyesuaikan presisi deteksi jika area luka belum tertangkap sempurna.</p>
+
+            <!-- Preprocessing Toggle (Fase 2) -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:var(--space-sm); border-top:1px dashed var(--outline-variant); padding-top:var(--space-sm)">
+              <span style="font-size:var(--fs-label-md); font-weight:600; color:var(--secondary)">Pra-pemrosesan Citra</span>
+              <button type="button" id="btn-ai-enhance" class="btn btn-outline" style="height:28px; padding:0 12px; font-size:11px; border-radius:var(--radius-sm); border-color:var(--secondary); color:var(--secondary)">
+                <span class="icon" style="font-size:14px; margin-right:4px">hdr_auto</span> Autokoreksi Cahaya
+              </button>
+            </div>
+            <!-- Live RGB Histogram Box -->
+            <div id="result-histogram-box" class="histogram-box hidden" style="margin-top:var(--space-sm); padding-top:var(--space-sm); border-top:1px dashed var(--outline-variant)">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-xs)">
+                <span style="font-size:11px; font-weight:600; color:var(--secondary)">Live RGB Histogram (Kontras Pemerataan)</span>
+                <span style="font-size:9px; color:var(--outline); font-family:monospace">tf.equalizeHistogram()</span>
+              </div>
+              <div class="histogram-charts-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-md); margin-top:var(--space-xs)">
+                <div class="histogram-panel">
+                  <p style="font-size:10px; text-align:center; margin-bottom:4px; font-weight:600; color:var(--on-surface-variant)">Sebelum</p>
+                  <div id="hist-before" class="histogram-bars-wrapper" style="display:flex; align-items:flex-end; height:50px; background:var(--surface-container-low); border-radius:var(--radius-xs); padding:2px; gap:1px"></div>
+                </div>
+                <div class="histogram-panel">
+                  <p style="font-size:10px; text-align:center; margin-bottom:4px; font-weight:600; color:var(--on-surface-variant)">Sesudah</p>
+                  <div id="hist-after" class="histogram-bars-wrapper" style="display:flex; align-items:flex-end; height:50px; background:var(--surface-container-low); border-radius:var(--radius-xs); padding:2px; gap:1px"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Cards Grid metrics -->
@@ -485,6 +619,33 @@
           </div>
 
           <div id="result-accuracy-val" class="accuracy-badge">Tingkat Deteksi: 0%</div>
+
+          <!-- Tissue Composition card (Fase 2) -->
+          <div id="result-tissue-composition-card" class="card" style="margin-top:var(--space-md); padding:var(--space-md); border-radius:var(--radius-md); background:var(--surface-container-low)">
+            <h4 class="section-title" style="font-size:14px; margin-bottom:var(--space-sm); display:flex; align-items:center; gap:6px">
+              <span class="icon" style="font-size:18px; color:var(--secondary)">donut_large</span>
+              Komposisi Jaringan Dasar Luka
+            </h4>
+            <div class="tissue-progress-bar" style="display:flex; height:18px; border-radius:9px; overflow:hidden; background-color:var(--outline-variant); margin-bottom:var(--space-sm)">
+              <div id="tissue-bar-granulation" style="width:0%; background-color:#e11d48; height:100%; transition:width 0.5s ease" title="Granulasi"></div>
+              <div id="tissue-bar-slough" style="width:0%; background-color:#eab308; height:100%; transition:width 0.5s ease" title="Slough"></div>
+              <div id="tissue-bar-necrotic" style="width:0%; background-color:#1e293b; height:100%; transition:width 0.5s ease" title="Nekrotik"></div>
+            </div>
+            <div class="tissue-legend" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11px; font-weight:600">
+              <span style="color:#e11d48; display:flex; align-items:center; gap:4px">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#e11d48"></span>
+                Granulasi: <span id="tissue-val-granulation">0%</span>
+              </span>
+              <span style="color:#b45309; display:flex; align-items:center; gap:4px">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#eab308"></span>
+                Slough: <span id="tissue-val-slough">0%</span>
+              </span>
+              <span style="color:#1e293b; display:flex; align-items:center; gap:4px">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:#1e293b"></span>
+                Nekrotik: <span id="tissue-val-necrotic">0%</span>
+              </span>
+            </div>
+          </div>
           
           <!-- Delta changes info bar -->
           <div id="result-trend-bar" class="trend-info-bar">
@@ -585,6 +746,32 @@
         <!-- Visual Before/After Panel -->
         <div id="detail-before-after-card" class="card before-after-card hidden">
           <h4 class="section-title" style="font-size:15px">Komparasi Progres Awal vs Akhir</h4>
+          
+          <!-- Interactive Slider Container (Premium Output) -->
+          <div id="interactive-slider-wrapper" class="interactive-slider-wrapper" style="margin-bottom:var(--space-md)">
+            <div class="slider-image-container">
+              <!-- Before Image (Background) -->
+              <img id="slider-before-img" class="slider-img" src="" alt="Before">
+              <!-- After Image (Overlay with clip-path) -->
+              <div id="slider-after-container" class="slider-after-container">
+                <img id="slider-after-img" class="slider-img" src="" alt="After">
+              </div>
+              <!-- Slider Handle bar -->
+              <div id="slider-handle" class="slider-handle">
+                <div class="slider-handle-line"></div>
+                <div class="slider-handle-button">
+                  <span class="icon">unfold_more</span>
+                </div>
+                <div class="slider-handle-line"></div>
+              </div>
+            </div>
+            <!-- Labels -->
+            <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:11px; font-weight:600; color:var(--on-surface-variant)">
+              <span>Kiri: Awal (Hari 1)</span>
+              <span>Kanan: Terbaru</span>
+            </div>
+          </div>
+
           <div class="before-after-grid">
             <div class="before-after-panel">
               <span class="before-after-label">Foto Pertama</span>
